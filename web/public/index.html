@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Mask Tool</title>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdn.rawgit.com/adriancooney/console.image/c9e6d4fd/console.image.min.js"></script>   
+    <script src="https://kit.fontawesome.com/b1ce8ca679.js" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.7.1/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.8.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.8.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.8.2/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.8.2/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.8.2/firebase-functions.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.8.2/firebase-storage.js"></script>
+    <script type="text/javascript" src="/eel.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/image.js"></script>
+    
+    <script src="js/edit.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+
+<body style="background-color: honeydew;"><noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <div id="edge"></div>
+    <!-- viewer -->
+    <div class="flex" style="margin: auto;">
+        <div class="outside-wrapper">
+            <div class="wrapper" style="margin: auto;">
+                <canvas id="tmpMask" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+                <canvas id="displayCanvasSeg" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+                <canvas id="displayCanvasPano" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+                <canvas id="displayCanvas" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+                <canvas id="displayCanvasMask" width="1024" height="512" style="border:1px solid #000000;"></canvas>
+            </div>
+        </div>
+        
+        <div class="checkboxes">
+            <div style="border:1px solid #000000; background-color: beige;">
+                <p style="font-size:23px; font-family: sans-serif; text-align: center;"><b>Display</b></p>
+                <input type="checkbox" value="Edit" id="pano-display" onclick="ChangeDisplayPano()">
+                <label for="pano" style="font-size:20px; font-family: sans-serif;"> Panorama</label><br>
+                <input type="checkbox" value="Edit" id="layout-display" onclick="ChangeDisplayLayout()">
+                <label for="layout" style="font-size:20px; font-family: sans-serif;"> Layout</label><br>
+                <input type="checkbox" value="Edit" id="edge-display" onclick="ChangeDisplayEdge()">
+                <label for="edge" style="font-size:20px; font-family: sans-serif;"> Edge</label><br>
+                <input type="checkbox" value="Edit" id="seg-display" onclick="ChangeDisplaySeg()">
+                <label for="seg" style="font-size:20px; font-family: sans-serif;"> Segmentation</label><br>
+                <input type="checkbox" value="Edit" id="mask-display" onclick="ChangeDisplayMask()">
+                <label for="mask-display" style="font-size:20px; font-family: sans-serif;"> Mask</label><br>
+            </div><br>
+            <div style="border:1px solid #000000; background-color: beige;">
+                <p style="font-size:23px; font-family: sans-serif; text-align: center; "><b>Edit</b></p>
+                <input class = "editMode" type="checkbox" value="Edit" id="editing" onclick="ShowMask()">
+                <label for="editing" style="font-size:20px; font-family: sans-serif;"> Edit</label><br>
+                <p style="font-size:20px; font-family: sans-serif; text-align: center; " id="timestamp"><b></b></p>
+                <div style="text-align: center;">
+                    <label for="mySize" style="font-size:15px; font-family: sans-serif;">Brush size</label>
+                    <input type="range" min="10" max="50" value="12" class="slider" id="myRange" name="mySize"><br>
+                    <button class="btn" id="brush" onclick="change_mode(this.id)"><i class="fas fa-pen"></i><br> Draw</button>
+                    <button class="btn" id="eraser" onclick="change_mode(this.id)"><i class="fas fa-eraser"></i><br> Erase</button><br><br>
+                    <button class="btn" id="undo" onclick="change_mode(this.id)"><i class="fas fa-undo"></i><br> Undo</button>
+                    <button class="btn" id="redo" onclick="change_mode(this.id)"><i class="fas fa-redo"></i><br> Redo</button><br><br>
+                    <button class="btn" id="select" onclick="change_mode(this.id)"><i class="fas fa-hand-point-up"></i><br> Select</button>
+                    <button class="btn" id="remove" onclick="change_mode(this.id)"><i class="fas fa-minus-square"></i><br> Remove all</button><br>
+                </div><br>
+            </div>
+        </div>
+        <div class="upload">
+            <label for="panoinput" style="font-size:20px; font-family: sans-serif;"> Upload Panorama</label>
+            <input type="file" multiple="false" accept="image/*" id="panoinput" onchange="PanoUpload()"><br>
+            <label for="layoutinput" style="font-size:20px; font-family: sans-serif;"> Upload Layout</label>
+            <input type="file" multiple="false" accept="image/*" id="layoutinput" onchange="LayoutUpload()"><br>
+            <label for="edgeinput" style="font-size:20px; font-family: sans-serif;"> Upload Edge</label>
+            <input type="file" multiple="false" accept="image/*" id="edgeinput" onchange="EdgeUpload()"><br>
+            <label for="segmentationinput" style="font-size:20px; font-family: sans-serif;"> Upload Segmentation</label>
+            <input type="file" multiple="false" accept="image/*" id="segmentationinput" onchange="SegmentationUpload()"><br>
+            <label for="maskinput" style="font-size:20px; font-family: sans-serif;"> Upload Mask</label>
+            <input type="file" multiple="false" accept="image/*" id="maskinput" onchange="MaskUpload()">
+        </div>
+        <div class="inpaint" style="margin: auto;">
+            <input class="btn" type="button" value="Upload mask" onclick="UploadMask()">
+            <input class="btn" type="button" value="Inpaint">
+        </div>
+    </div>
+
+    <script src="js/upload.js"></script>
+</body>
